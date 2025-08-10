@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { z } from "zod";
 import { getCurrentUser } from "@/app/lib/auth";
+import { sendLicenseEmail } from "@/app/lib/email";
 
 const checkoutSchema = z.object({
   email: z.string().email(),
@@ -135,6 +136,16 @@ export async function POST(req: NextRequest) {
       }
     }
     const appUrl = process.env.APP_URL || "http://localhost:3000";
+    // E-posta gönderimi
+    await sendLicenseEmail(
+      email,
+      paid.id,
+      paid.orderItems.map((i) => ({
+        productTitle: productMap.get(i.productId)?.title ?? "Ürün",
+        licenseKey: i.licenseKey?.key ?? null,
+        quantity: i.quantity,
+      }))
+    );
     return NextResponse.redirect(`${appUrl}/payment/${paid.id}`);
   }
 

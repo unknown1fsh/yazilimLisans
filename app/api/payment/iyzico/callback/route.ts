@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createIyziClient } from "@/app/lib/iyzico";
 import { prisma } from "@/app/lib/prisma";
+import { sendLicenseEmail } from "@/app/lib/email";
 
 // Iyzico ödeme sonrası callback. Iyzipay docs: threeds | checkoutform callback
 export async function POST(req: NextRequest) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   if (newStatus === "PAID") {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { orderItems: true },
+      include: { orderItems: { include: { product: true, licenseKey: true } } },
     });
     if (order) {
       for (const item of order.orderItems) {
@@ -64,6 +65,15 @@ export async function POST(req: NextRequest) {
           ]);
         }
       }
+      await sendLicenseEmail(
+        order.email,
+        order.id,
+        order.orderItems.map((i) => ({
+          productTitle: i.product.title,
+          licenseKey: i.licenseKey?.key ?? null,
+          quantity: i.quantity,
+        }))
+      );
     }
   }
 

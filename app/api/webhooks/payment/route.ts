@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { sendLicenseEmail } from "@/app/lib/email";
 
 // Sanal POS sağlayıcılarından ödeme callback'i almak için genel webhook
 export async function POST(req: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const order = await prisma.order.update({
     where: { id: orderId },
     data: { status: status as any, paymentRef },
-    include: { orderItems: true },
+    include: { orderItems: { include: { product: true, licenseKey: true } } },
   });
 
   // Başarılı ödeme sonrası lisans anahtarlarını atama (idempotent yaklaşım)
@@ -47,6 +48,16 @@ export async function POST(req: NextRequest) {
         await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
       }
     }
+    // E-posta gönder
+    await sendLicenseEmail(
+      order.email,
+      order.id,
+      order.orderItems.map((i) => ({
+        productTitle: i.product.title,
+        licenseKey: i.licenseKey?.key ?? null,
+        quantity: i.quantity,
+      }))
+    );
   }
 
   return NextResponse.json({ ok: true });
