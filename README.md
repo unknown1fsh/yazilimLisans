@@ -1,0 +1,2 @@
+# yazilimLisans
+Yazılım Lisans
