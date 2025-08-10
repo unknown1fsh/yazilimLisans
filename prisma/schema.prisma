@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum UserType {
+  PERSONAL
+  COMPANY
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  userType  UserType  @default(PERSONAL)
+  tcKimlikNo      String?   @unique
+  vergiKimlikNo   String?   @unique
+  companyName     String?
+  phone     String?
+  address   String?
+  passwordHash String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  orders    Order[]
+  accounts  Account[]
+  sessions  Session[]
+  carts     Cart[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id            Int          @id @default(autoincrement())
+  title         String
+  slug          String       @unique
+  description   String
+  price         Decimal      @db.Decimal(10, 2)
+  sku           String?
+  imageUrl      String?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  categoryId    Int?
+  category      Category?    @relation(fields: [categoryId], references: [id])
+  licenseKeys   LicenseKey[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+}
+
+model LicenseKey {
+  id           Int        @id @default(autoincrement())
+  key          String     @unique
+  productId    Int
+  product      Product    @relation(fields: [productId], references: [id])
+  isAssigned   Boolean    @default(false)
+  assignedAt   DateTime?
+  orderItem    OrderItem?
+  createdAt    DateTime   @default(now())
+}
+
+model Order {
+  id              Int          @id @default(autoincrement())
+  userId          Int?
+  user            User?        @relation(fields: [userId], references: [id])
+  email           String
+  totalAmount     Decimal      @db.Decimal(10, 2)
+  status          OrderStatus  @default(PENDING)
+  paymentProvider String?
+  paymentRef      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  orderItems      OrderItem[]
+}
+
+model OrderItem {
+  id            Int        @id @default(autoincrement())
+  orderId       Int
+  order         Order      @relation(fields: [orderId], references: [id])
+  productId     Int
+  product       Product    @relation(fields: [productId], references: [id])
+  quantity      Int        @default(1)
+  unitPrice     Decimal    @db.Decimal(10, 2)
+  licenseKeyId  Int?       @unique
+  licenseKey    LicenseKey? @relation(fields: [licenseKeyId], references: [id])
+  productSnapshot Json
+}
+
+// NextAuth (Auth.js) Prisma Adapter tabloları
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  oauth_token_secret String?
+  oauth_token        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Sepet yapısı
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+}
