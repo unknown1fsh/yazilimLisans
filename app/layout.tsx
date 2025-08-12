@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/app/ui/Header";
 import { Toaster } from "sonner";
+import Footer from "@/app/ui/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
           {/* @ts-expect-error Async Server Component */}
           <Header />
           {children}
+          <Footer />
         </div>
         <Toaster richColors position="top-right" />
       </body>

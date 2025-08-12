@@ -12,6 +12,8 @@ export default async function Header() {
       <nav className="flex items-center gap-6 text-sm">
         <Link href="/">Anasayfa</Link>
         <Link href="/sepet">Sepetim</Link>
+        <Link href="/guvenilirlik">Güvenilirlik</Link>
+        <Link href="/iletisim">İletişim</Link>
         {!user && (
           <>
             <Link href="/login">Giriş</Link>
