@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/app/lib/auth";
 import { sendLicenseEmail } from "@/app/lib/email";
 
 const checkoutSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().optional(),
   items: z
     .array(
       z.object({
@@ -13,7 +13,7 @@ const checkoutSchema = z.object({
         quantity: z.number().int().min(1).max(50),
       })
     )
-    .min(1),
+    .optional(),
   provider: z.enum(["iyzico", "paytr", "mock"]).default("mock"),
 });
 
@@ -48,8 +48,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let { email, items, provider } = parsed.data;
+  let { email, items = [], provider } = parsed.data;
   const session = await getCurrentUser();
+  // Oturum varsa e-posta adresini oturumdan kullan
+  if (session?.email) {
+    email = session.email;
+  }
   // items boşsa sepettekilerle öde
   if ((!items || items.length === 0) && session?.userId) {
     const cart = await prisma.cart.findFirst({
@@ -57,6 +61,13 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     });
     items = (cart?.items || []).map((i) => ({ productId: i.productId, quantity: i.quantity }));
+  }
+
+  if (!email) {
+    return NextResponse.json({ error: "E-posta gerekli. Lütfen giriş yapın veya e-posta belirtin." }, { status: 400 });
+  }
+  if (!items || items.length === 0) {
+    return NextResponse.json({ error: "Sepet boş. Ürün ekleyin veya adetleri kontrol edin." }, { status: 400 });
   }
 
   const products = await prisma.product.findMany({

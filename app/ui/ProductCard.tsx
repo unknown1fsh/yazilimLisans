@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { toast } from "sonner";
 
 type Props = {
   id: number;
@@ -14,8 +15,8 @@ export default function ProductCard({ id, title, price }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productId: id, quantity: 1 }),
     });
-    if (res.ok) alert("Sepete eklendi");
-    else alert("Giriş yapınız veya tekrar deneyiniz");
+    if (res.ok) toast.success("Sepete eklendi");
+    else toast.error("Giriş yapınız veya tekrar deneyiniz");
   };
 
   return (
@@ -29,12 +30,12 @@ export default function ProductCard({ id, title, price }: Props) {
           <div className="text-sm opacity-70">{Number(price).toFixed(2)} TL</div>
         </div>
         <div className="flex items-center gap-2">
-          <form action="/api/checkout" method="POST">
-            <input type="hidden" name="email" value="test@example.com" />
-            <input type="hidden" name="provider" value="iyzico" />
-            <input type="hidden" name="items" value={JSON.stringify([{ productId: id, quantity: 1 }])} />
-            <button type="submit" className="rounded bg-blue-600 px-3 py-2 text-white text-sm hover:bg-blue-700">Satın Al</button>
-          </form>
+          <a
+            href={`/checkout?items=${encodeURIComponent(JSON.stringify([{ productId: id, quantity: 1 }]))}`}
+            className="rounded bg-blue-600 px-3 py-2 text-white text-sm hover:bg-blue-700"
+          >
+            Satın Al
+          </a>
           <button onClick={addToCart} className="rounded bg-gray-800 px-3 py-2 text-white text-sm hover:bg-gray-900">Sepete Ekle</button>
         </div>
       </div>
