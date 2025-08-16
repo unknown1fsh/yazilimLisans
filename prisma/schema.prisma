@@ -42,6 +42,7 @@ model User {
   accounts  Account[]
   sessions  Session[]
   carts     Cart[]
+  reviews   Review[]
 }
 
 model Category {
@@ -69,6 +70,7 @@ model Product {
   licenseKeys   LicenseKey[]
   orderItems    OrderItem[]
   cartItems     CartItem[]
+  reviews       Review[]
 }
 
 model LicenseKey {
@@ -94,6 +96,7 @@ model Order {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   orderItems      OrderItem[]
+  reviews         Review[]
 }
 
 model OrderItem {
@@ -165,4 +168,22 @@ model CartItem {
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
+}
+
+// Yorum sistemi
+model Review {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  rating      Int      @default(5) // 1-5 arası puan
+  comment     String   @db.Text
+  isApproved  Boolean  @default(false) // Admin onayı için
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, productId, orderId]) // Bir kullanıcı bir ürün için bir siparişte sadece bir yorum yapabilir
 }
